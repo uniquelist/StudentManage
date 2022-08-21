@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>用户登录</title>
+		<script src="js/vue2开发版.js"></script>
+		<!-- 引入样式 -->
+		<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+		<!-- 引入组件库 -->
+		<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+		<script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
+		<script src="./js/moment.js"></script>
+	</head>
+	<body>
+		<div id="app">
+			<el-row :gutter="10">
+				<!-- 导航菜单 -->
+				<el-col md="8">
+					<div class="line"></div>
+					<el-menu :default-active="activeIndex2" class="el-menu-demo" mode="horizontal"
+						@select="handleSelect" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b">
+						<el-menu-item index="1"><a href="index.html">首页</a></el-menu-item>
+						<el-menu-item index="1"><a href="charts.html">图表</a></el-menu-item>
+						<el-menu-item index="1"><a href="login.html">登录</a></el-menu-item>
+					</el-menu>
+				</el-col>
+				<el-col md="16">
+					<template>
+						<div class="login_box">
+						  <div class="login_content">
+							<h1>用户登录</h1>
+							<el-form
+							  :model="ruleForm"
+							  status-icon
+							  :rules="rules"
+							  ref="ruleForm"
+							  label-width="65px"
+							  class="demo-ruleForm"
+							>
+							  <el-form-item label="用户名" prop="username">
+								<el-input type="text" v-model="ruleForm.username" autocomplete="off"></el-input>
+							  </el-form-item>
+							  <el-form-item label="密码" prop="password">
+								<el-input type="password" v-model="ruleForm.password" autocomplete="off"></el-input>
+							  </el-form-item>
+							  <el-form-item>
+								<el-button type="primary" @click="login">登录</el-button>
+								<el-button @click="resetForm" class="test">重置</el-button>
+								<a href="register.html"><el-button @click="resetForm" class="test">注册</el-button></a>
+							  </el-form-item>
+							</el-form>
+						  </div>
+						</div>
+					  </template>
+				</el-col>
+			
+		</div>
+	</body>
+	<script>
+		const vm = new Vue({
+			el : '#app',
+			data() {
+				return {
+				ruleForm: {
+					username: "",
+					password: ""
+				},
+				rules: {
+					username: [
+					{ required: true, message: "请输入用户名", trigger: "blur" },
+					{ min: 5, max: 20, message: "长度在 5 到 20 个字符", trigger: "blur" }
+					],
+					password: [
+					{ required: true, message: "请输入密码", trigger: "blur" },
+					{ min: 6, max: 20, message: "长度在 6 到 20 个字符", trigger: "blur" }
+					]
+				}
+				};
+			},
+        methods: {
+            resetForm() {
+				console.log("重置");
+				this.ruleForm.username = "";
+				this.ruleForm.password = "";
+				},
+            login() {
+                console.log("获取数据..");
+							axios.get( `/form/get?username=${this.ruleForm.username}&&password=${this.ruleForm.password}`
+								).then(
+								//2种方法共用下面代码
+								(res) => {
+									console.log(res.data);
+									if(res.data.length != 0)
+										{
+											console.log("获取成功");
+											this.$message({
+												message: "登录成功",
+												type: "success",
+											});
+											window.location.href="index.html";
+										}else{
+											this.$message.error("用户名或密码不正确！");
+										}
+								},
+								(err) => {
+									console.log("获取失败");
+									
+								}
+								);
+            }
+        },
+	})
+	</script>
+</html>

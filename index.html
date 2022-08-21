@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<!-- vue文件 -->
+		<script src="js/vue2开发版.js"></script>
+		<!-- 引入样式 -->
+		<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+		<!-- 引入组件库 -->
+		<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+		<script src="https://cdn.staticfile.org/axios/0.18.0/axios.min.js"></script>
+		<script src="./js/moment.js"></script>
+		<style>
+			#bot {
+				position: absolute;
+				bottom: 0px;
+				width: 100%;
+				text-align: center;
+			}
+		</style>
+		<title>学生信息管理</title>
+	</head>
+	<body>
+		<div id="app">
+			<el-row :gutter="10">
+				<!-- 导航菜单 -->
+				<el-col md="8">
+					<div class="line"></div>
+					<el-menu :default-active="activeIndex2" class="el-menu-demo" mode="horizontal"
+						@select="handleSelect" background-color="#545c64" text-color="#fff" active-text-color="#ffd04b">
+						<el-menu-item index="1"><a href="index.html">首页</a></el-menu-item>
+						<el-menu-item index="1"><a href="charts.html">图表</a></el-menu-item>
+						<el-menu-item index="1"><a href="login.html">登录</a></el-menu-item>
+					</el-menu>
+				</el-col>
+				<el-col md="16">
+				<!--查询表单-->
+					<el-form :inline="true">
+						<el-form-item label="姓名">
+						  <el-input placeholder="请输入内容" v-model.trim="input.name" clearable></el-input>
+						</el-form-item>
+						<el-form-item label="学号">
+						  <el-input placeholder="请输入内容" v-model.trim="input.address" clearable></el-input>
+						</el-form-item>
+						<el-form-item>
+						  <el-button @click="getDataByInput()" type="primary">查询</el-button>
+						</el-form-item>
+					<!--数据表格-->
+					<el-table
+						:data="tableData.slice((currentPage-1)*pageSize,currentPage*pageSize)"
+						ref="multipleTable" tooltip-effect="dark" style="width: 100%"
+						@selection-change="handleSelectionChange">
+						<el-table-column label="班级" prop="class">
+						</el-table-column>
+						<el-table-column label="姓名" prop="name">
+						</el-table-column>
+						<el-table-column label="学号" prop="number">
+						</el-table-column>
+						<el-table-column label="成绩" prop="score">
+						</el-table-column>
+						<el-table-column align="right">
+							<template slot="header" slot-scope="scope">
+								<el-button>全选</el-button>
+							</template>
+							<template slot-scope="scope">
+								<el-dialog title="修改信息" :visible.sync="dialogFormVisible">
+									<el-form :model="form">
+										<el-form-item label="班级" :label-width="formLabelWidth">
+											<el-input v-model="form.class" autocomplete="off"></el-input>
+										</el-form-item>
+										<el-form-item label="姓名" :label-width="formLabelWidth">
+											<el-input v-model="form.name" autocomplete="off"></el-input>
+										</el-form-item>
+										<el-form-item label="学号" :label-width="formLabelWidth">
+											<el-input v-model="form.number" autocomplete="off"></el-input>
+										</el-form-item>
+										<el-form-item label="成绩" :label-width="formLabelWidth">
+											<el-input v-model="form.score" autocomplete="off"></el-input>
+										</el-form-item>
+									</el-form>
+									<div slot="footer" class="dialog-footer">
+										<el-button @click="dialogFormVisible = false">取 消</el-button>
+										<el-button type="primary" @click="handleUpdate()">确 定</el-button>
+									</div>
+								</el-dialog>
+								<el-button size="mini" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+								<el-popconfirm confirm-button-text='确认删除' cancel-button-text='取消' icon="el-icon-info"
+									icon-color="red" title="确定删除吗?" @confirm="handleDelete(scope.row)">
+									<el-button slot="reference" size="mini" type="danger">删除</el-button>
+							</template>
+						</el-table-column>
+						<el-table-column type="selection" width="55"> </el-table-column>
+					</el-table>
+				</el-col>
+			</el-row>
+			<!-- 分页操作 -->
+			<div class="block" id="bot">
+				<el-pagination align='center' 
+					@size-change="handleSizeChange" 
+					@current-change="handleCurrentChange"
+					:current-page="currentPage" 
+					:page-sizes="[1,5,10,20]" 
+					:page-size="pageSize" 
+					layout="total, sizes, prev, pager, next, jumper" 
+					:total="tableData.length">
+					</el-pagination>
+			</div>
+			<el-dialog title="学生信息" :visible.sync="dialogFormStuVisible">
+				<el-form :model="formstu">
+					<el-form-item label="班级" :label-width="formLabelWidth">
+						<el-input v-model="formstu.class" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item label="姓名" :label-width="formLabelWidth">
+						<el-input v-model="formstu.name" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item label="学号" :label-width="formLabelWidth">
+						<el-input v-model="formstu.number" autocomplete="off"></el-input>
+					</el-form-item>
+					<el-form-item label="成绩" :label-width="formLabelWidth">
+						<el-input v-model="formstu.score" autocomplete="off"></el-input>
+					</el-form-item>
+				</el-form>
+				<div slot="footer" class="dialog-footer">
+					<el-button @click="dialogFormStuVisible = false">取 消</el-button>
+					<el-button type="primary" @click="handleStuUpdate()">确 定</el-button>
+				</div>
+			</el-dialog>
+			<div style="margin-top: 20px">
+				<el-button @click="add()">添加学生</el-button>
+				<a href="charts2.html">
+					<el-button>生成图表</el-button>
+				</a>
+				<el-button @click="toggleSelection()">取消选择</el-button>
+				<el-button @click="deleteSelection()">删除选中</el-button>
+			</div>
+		</div>
+		<script>
+			const vm = new Vue({
+				el: '#app',
+				data() {
+					return {
+						tableData: [],
+						tableData2: [],
+						search: '',
+						form: {},
+						formstu: {},
+						formLabelWidth: '120px',
+						multipleSelection: [],
+						dialogFormVisible: false,
+						dialogFormStuVisible: false,
+						activeIndex: '1',
+						activeIndex2: '1',
+						index: 0,
+						currentPage: 1, // 当前页码
+						total: 20, // 总条数
+						pageSize: 2 ,// 每页的数据条数
+						input: {           //查询表单，初始数据置空
+								name: "",        // 姓名 文本框
+								number: "",     // 地址 文本框
+							}, 
+					}
+				},
+				// created() {
+				// 	this.total = this.tableData.length; //获取列表长度
+				// 	//初始化列表副本，用于展示
+				// 	this.tableData2 = this.tableData.slice(0, this.pagesize)
+				// },
+				// watch: {
+				// 	pagesize() {
+				// 		this.tableData2 = this.tableData.slice(0, this.pagesize)
+				// 	},
+				// 	//监听pagenum的改变，从而改变展示数据rightsList22
+				// 	pagenum() {
+				// 		this.tableData2 = this.tableData.slice(this.pagesize * (this.pagenum - 1), this.pagesize * this
+				// 			.pagenum)
+				// 	}
+				// },
+				methods: {
+					//初始化表格数据遍历原始all里面的值
+					getData() {
+						axios.get("/student/getlist").then(
+							(res) => {
+							this.tableData = res.data;
+							},
+							(err) => {
+							console.log("获取失败");
+							}
+						);
+						},
+					toggleSelection(rows) {
+						if (rows) {
+							rows.forEach((row) => {
+								this.$refs.multipleTable.toggleRowSelection(row);
+							});
+						} else {
+							this.$refs.multipleTable.clearSelection();
+						}
+					},
+					handleSelectionChange(val) {
+						this.multipleSelection = val;
+					},
+					handleSelectionChange(val) {
+						this.multipleSelection = val;
+					},
+					handleUpdate() {
+						if(this.form.class===''||this.form.name===''||this.form.number===''||this.form.score==='')
+						{
+							this.$message.error("数据填写不完整");
+							return;
+						}
+						axios
+							.put(`student/update/${this.form.number}`, this.form)
+							.then((res) => {
+							this.$message({
+								message: "数据修改成功",
+								type: "success",
+							});
+							this.dialogFormVisible = false;
+							this.getData();
+							});
+					},
+					handleEdit(index, row) {
+						this.dialogFormVisible = true;
+						// this.form = row;
+						this.form = JSON.parse(JSON.stringify(row))
+						this.index = index;
+					},
+					handleDelete(row) {
+						axios
+							.delete(`/student/delstudent/${row.number}`)
+							.then((res) => {
+							this.$message({
+								message: "数据删除成功",
+								type: "success",
+							});
+							this.getData();
+							})
+							.catch((err) => {
+							this.$message.error("数据删除失败");
+							});
+					},
+					handleStuUpdate() {
+
+						if (this.formstu.class === '' || this.formstu.name === '' || this.formstu.number === '' || this
+							.formstu.score === '') {
+							this.$message.error("数据填写不完整");
+							return;
+						}  axios.post("/student/create", this.formstu)
+								.then((res) => {
+								this.$message({
+									message: "数据添加成功",
+									type: "success",
+								});
+								this.getData();
+								this.dialogFormStuVisible = false;
+								})
+								.catch((err) => {
+								this.$message.error("数据添加失败");
+								});
+							
+					},
+					add() {
+						this.dialogFormStuVisible = true;
+						this.formstu = {
+							class: '',
+							name: '',
+							number: '',
+							score: '',
+						}
+					},
+					//删除选中
+					deleteSelection() {
+						// console.log(this.$refs.multipleTable.selection)//选中的所有行
+						let selectNumbers = [];
+						this.$refs.multipleTable.selection.forEach((row) => {
+							selectNumbers.push(row.number);
+						});
+						if (selectNumbers.length == 0) return; //都未选中
+						axios.delete(`/student/delselects/${selectNumbers}`)
+							.then((res) => {
+							this.$message({
+								message: "数据删除成功",
+								type: "success",
+							});
+							this.getData();//重新获取数据
+							})
+							.catch((err) => {
+							console.log(err.message);
+							this.$message.error("数据删除失败");
+							});
+						//从vue中本地删除
+						// this.tableData = this.tableData.filter(
+						//   (row) => !this.$refs.multipleTable.selection.includes(row)
+						// );
+						},
+					//获取表单数据
+					getDataByInput() {
+							console.log("获取数据..");
+							axios.get( `/student/get?name=${this.input.name}&&number=${this.input.number}`
+								).then(
+								//2种方法共用下面代码
+								(res) => {
+									this.tableData = res.data;
+								},
+								(err) => {
+									console.log("获取失败");
+								}
+								);
+							},
+					handleSelect(key, keyPath) {
+						console.log(key, keyPath);
+					},
+					handleSizeChange(val) {
+						console.log(`每页 ${val} 条`);
+						this.currentPage = 1;
+						this.pageSize = val;
+					},
+					//当前页改变时触发 跳转其他页
+					handleCurrentChange(val) {
+						console.log(`当前页: ${val}`);
+						this.currentPage = val;
+					}
+				},
+				created() {
+       				 this.getData();//Vue初始化时获取数据
+      				},
+			})
+		</script>
+	</body>
+</html>
